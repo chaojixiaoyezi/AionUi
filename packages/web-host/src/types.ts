@@ -38,7 +38,8 @@ export type WebHostOptions = {
   dataDir?: string;
   logDir?: string;
   dirs?: BackendSystemDirs;
-  backend: { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver } | { kind: 'useExistingBackend'; port: number };
+  myAgent?: { runtime: { command: string; args: string[] }; env?: NodeJS.ProcessEnv };
+  backend: { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver; local?: boolean } | { kind: 'useExistingBackend'; port: number };
 };
 
 /**

@@ -95,6 +95,10 @@ export type BackendLaunchOptions = {
    * process.env and will likely report wrong/empty dirs.
    */
   dirs?: BackendDirConfig;
+  /** Trusted child-only environment; never included in startup diagnostics. */
+  extraEnv?: NodeJS.ProcessEnv;
+  /** Embedded callers keep local mode; standalone WebUI explicitly disables it. */
+  local?: boolean;
 };
 
 export type BackendHandle = {
@@ -221,13 +225,9 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
  * backend's `/api/system/info` matches what Electron main persists in
  * ProcessEnv('aionui.dir').
  */
-export function buildSpawnEnv(dirs?: BackendDirConfig): NodeJS.ProcessEnv {
-  // PREBUILDS_ONLY protects the packaged Electron process's own node-gyp-build
-  // natives (see desktop process/index.ts) and must stay scoped to it. Agent
-  // CLIs spawned under aioncore (e.g. cursor-agent) ship natives under
-  // build/Release only, and node-gyp-build skips that directory for any
-  // non-empty value, aborting the agent before the ACP handshake (#4070).
-  const { PREBUILDS_ONLY: _prebuildsOnly, ...parentEnv } = process.env;
+export function buildSpawnEnv(dirs?: BackendDirConfig, extraEnv: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+  // Keep Electron-only native-module flags away from agent subprocesses.
+  const { PREBUILDS_ONLY: _prebuildsOnly, ...parentEnv } = { ...process.env, ...extraEnv };
   if (!dirs) return parentEnv;
   return {
     ...parentEnv,
@@ -527,7 +527,8 @@ export class BackendLifecycleManager {
 
   constructor(
     private readonly appMeta: AppMetadata,
-    private readonly resolveBackend: BackendBinaryResolver
+    private readonly resolveBackend: BackendBinaryResolver,
+    private readonly processOptions: { extraEnv?: NodeJS.ProcessEnv; local?: boolean } = {}
   ) {}
 
   get port(): number {
@@ -665,7 +666,7 @@ export class BackendLifecycleManager {
     const args = buildSpawnArgs({
       port: this._port,
       dbPath,
-      local: true,
+      local: this.processOptions.local ?? true,
       parentPid: process.pid,
       logDir,
       workDir: dirs?.workDir,
@@ -689,7 +690,7 @@ export class BackendLifecycleManager {
     try {
       this.childProcess = spawn(binaryPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        env: buildSpawnEnv(dirs),
+        env: buildSpawnEnv(dirs, this.processOptions.extraEnv),
         cwd: dirs?.workDir ?? dbPath,
         detached: process.platform !== 'win32',
       });
@@ -1076,7 +1077,7 @@ export class BackendLifecycleManager {
  * directly to preserve current stop/port getter semantics).
  */
 export async function startBackend(opts: BackendLaunchOptions): Promise<BackendHandle> {
-  const manager = new BackendLifecycleManager(opts.app, opts.resolveBackend);
+  const manager = new BackendLifecycleManager(opts.app, opts.resolveBackend, { extraEnv: opts.extraEnv, local: opts.local });
   const dataDir = opts.dataDir ?? '';
   if (!dataDir) {
     throw new Error('startBackend: dataDir is required');

@@ -20,6 +20,7 @@ export type StaticServerOptions = {
   backendPort: number;
   port?: number;
   allowRemote?: boolean;
+  requestHandler?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
 };
 
 export type StaticServerHandle = {
@@ -179,6 +180,8 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
         res.writeHead(400).end();
         return;
       }
+
+      if (opts.requestHandler && await opts.requestHandler(req, res)) return;
 
       // /api/* — reverse proxy to backend (includes /api/auth/*).
       // /login and /logout are aionui-auth's top-level auth endpoints: proxy them too
