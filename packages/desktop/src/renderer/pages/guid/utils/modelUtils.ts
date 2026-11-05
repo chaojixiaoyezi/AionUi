@@ -19,6 +19,9 @@ const available_modelsCache = new Map<string, string[]>();
  * @returns Array of available primary model names
  */
 export const getAvailableModels = (provider: IProvider): string[] => {
+  if (provider.id === 'my-agent' && (provider as { readonly?: boolean }).readonly === true) {
+    return [];
+  }
   // 包含 model_enabled 状态到缓存 key 中
   const model_enabledKey = provider.model_enabled ? JSON.stringify(provider.model_enabled) : 'all-enabled';
   const cacheKey = `${provider.id}-${(provider.models || []).join(',')}-${model_enabledKey}`;

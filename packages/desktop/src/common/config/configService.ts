@@ -24,6 +24,12 @@ async function fetchJson<T>(method: string, path: string, body?: unknown): Promi
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
   }
+  if (method !== 'GET' && method !== 'HEAD' && typeof document !== 'undefined' && typeof document.cookie === 'string') {
+    const match = /(?:^|;\s*)(?:aionui-csrf-token|csrf-token)=([^;]+)/.exec(document.cookie);
+    if (match?.[1]) {
+      headers['x-csrf-token'] = decodeURIComponent(match[1]);
+    }
+  }
   const response = await fetch(url, {
     method,
     headers,

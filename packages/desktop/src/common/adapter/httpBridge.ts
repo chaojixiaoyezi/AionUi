@@ -200,7 +200,11 @@ function isAuthEndpoint(path: string): boolean {
  * Returns '' — always, for now.
  */
 export function resolveCoreCsrfToken(): string {
-  return '';
+  if (typeof document === 'undefined' || typeof document.cookie !== 'string') {
+    return '';
+  }
+  const match = /(?:^|;\s*)(?:aionui-csrf-token|csrf-token)=([^;]+)/.exec(document.cookie);
+  return match?.[1] ? decodeURIComponent(match[1]) : '';
 }
 
 function sendHttpRequest(
@@ -229,6 +233,13 @@ export async function httpRequest<T>(
     headers['Content-Type'] = 'application/json';
   }
 
+  if (method !== 'GET' && method !== 'HEAD') {
+    const csrfToken = resolveCoreCsrfToken();
+    if (csrfToken) {
+      headers['x-csrf-token'] = csrfToken;
+    }
+  }
+
   if (options?.headers) {
     Object.assign(headers, options.headers);
   }
@@ -248,6 +259,12 @@ export async function httpRequest<T>(
     console.debug(`[httpBridge] ${method} ${path} → 401, attempting session refresh`);
     const refreshed = await refreshSession();
     if (refreshed) {
+      if (method !== 'GET' && method !== 'HEAD' && !options?.headers?.['x-csrf-token']) {
+        const refreshedCsrf = resolveCoreCsrfToken();
+        if (refreshedCsrf) {
+          headers['x-csrf-token'] = refreshedCsrf;
+        }
+      }
       console.debug(`[httpBridge] session refreshed, replaying ${method} ${path}`);
       response = await sendHttpRequest(method, path, headers, body);
     }

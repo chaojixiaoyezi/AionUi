@@ -77,13 +77,30 @@ function getLanIP(): string | null {
   return pickLanIP(networkInterfaces());
 }
 
+function isSameOriginRequest(req: IncomingMessage): boolean {
+  if (req.headers['sec-fetch-site'] === 'cross-site') return false;
+  if (!req.headers.origin) return true;
+  try {
+    return new URL(req.headers.origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
+}
+
 function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort: number): void {
+  const headers: http.OutgoingHttpHeaders = { ...req.headers, host: `127.0.0.1:${backendPort}` };
+  if (!headers['x-csrf-token'] && isSameOriginRequest(req) && typeof req.headers.cookie === 'string') {
+    const csrfMatch = /(?:^|;\s*)(?:aionui-csrf-token|csrf-token)=([^;]+)/.exec(req.headers.cookie);
+    if (csrfMatch?.[1]) {
+      headers['x-csrf-token'] = decodeURIComponent(csrfMatch[1]);
+    }
+  }
   const options: http.RequestOptions = {
     hostname: '127.0.0.1',
     port: backendPort,
     path: req.url,
     method: req.method,
-    headers: { ...req.headers, host: `127.0.0.1:${backendPort}` },
+    headers,
   };
   const proxy = http.request(options, (proxyRes) => {
     res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);

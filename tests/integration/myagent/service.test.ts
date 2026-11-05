@@ -17,14 +17,14 @@ async function fixture(envExtra: NodeJS.ProcessEnv = {}) {
   const file = join(dir, 'admin.json');
   const salt = Buffer.from('1234567890abcdef');
   await writeFile(file, JSON.stringify({ schema: 'admin_password.v1', algorithm: 'scrypt', n: 16384, r: 8, p: 1, salt: salt.toString('base64'), hash: scryptSync('synthetic-test-password', salt, 32).toString('base64'), updated_at: 1 }), { mode: 0o600 });
-  const calls: { path: string; body: Record<string, unknown>; secret?: string }[] = [];
+  const calls: { path: string; body: Record<string, unknown>; secret?: string; csrf?: string }[] = [];
   const assistants: Record<string, unknown>[] = [];
   const agents: Record<string, unknown>[] = [];
   let settings: Record<string, unknown> = {};
   const backend = http.createServer(async (req, res) => {
     let raw = ''; for await (const c of req) raw += String(c);
     const body = raw ? JSON.parse(raw) : {};
-    const path = req.url!; calls.push({ path, body, secret: req.headers['x-aioncore-bootstrap-secret'] as string });
+    const path = req.url!; calls.push({ path, body, secret: req.headers['x-aioncore-bootstrap-secret'] as string, csrf: req.headers['x-csrf-token'] as string });
     res.setHeader('content-type', 'application/json');
     const reply = (data: unknown) => res.end(JSON.stringify({ success: true, data }));
     if (path === '/login') { res.writeHead(body.password === 'native-test-password' ? 200 : 401); res.end(JSON.stringify({ success: body.password === 'native-test-password' })); return; }
@@ -106,5 +106,21 @@ describe('my-agent WebUI wiring', () => {
     expect(await bridge.store.get('user_settings', 'admin-user:client')).toMatchObject({ language: 'zh-CN' });
     expect((await bridge.store.list('sync_metadata', 'admin-user:')).length).toBeGreaterThan(0);
     expect((await request('/api/settings/client')).status).toBe(401);
+  });
+  it('deduplicates concurrent /api/auth/user lookups and injects x-csrf-token on same-origin non-tracked POSTs', async () => {
+    const { request, calls, cookie } = await fixture();
+    const fullCookie = `${cookie}; aionui-csrf-token=csrf-double-submit-123`;
+    const responses = await Promise.all([
+      request('/api/auth/user', 'GET', undefined, { cookie: fullCookie }),
+      request('/api/settings/client', 'GET', undefined, { cookie: fullCookie }),
+      request('/api/conversations/conversation-1', 'GET', undefined, { cookie: fullCookie }),
+      request('/api/conversations/conversation-1/messages', 'GET', undefined, { cookie: fullCookie }),
+      request('/api/fs/dir', 'POST', { path: '/var/lib/aionui' }, { cookie: fullCookie }),
+      request('/api/conversations/conversation-1/runtime/ensure', 'POST', undefined, { cookie: fullCookie }),
+    ]);
+    for (const r of responses) expect(r.status).toBe(200);
+    expect(calls.filter((c) => c.path === '/api/auth/user')).toHaveLength(1);
+    expect(calls.find((c) => c.path === '/api/fs/dir')?.csrf).toBe('csrf-double-submit-123');
+    expect(calls.find((c) => c.path === '/api/conversations/conversation-1/runtime/ensure')?.csrf).toBe('csrf-double-submit-123');
   });
 });

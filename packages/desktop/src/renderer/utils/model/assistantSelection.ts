@@ -35,7 +35,9 @@ const sourceGroupWeight = (source: string): number => {
 };
 
 const compareLegacyAssistantOrder = (left: Assistant, right: Assistant): number => {
-  const groupDelta = sourceGroupWeight(left.source) - sourceGroupWeight(right.source);
+  const leftPriority = left.id === 'my-agent' ? -1 : sourceGroupWeight(left.source);
+  const rightPriority = right.id === 'my-agent' ? -1 : sourceGroupWeight(right.source);
+  const groupDelta = leftPriority - rightPriority;
   if (groupDelta !== 0) return groupDelta;
 
   const orderDelta = left.sort_order - right.sort_order;

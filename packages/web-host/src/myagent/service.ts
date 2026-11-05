@@ -1,8 +1,9 @@
+import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { openBridgeStore, type StoreEntry } from './store.js';
 import { loadMyAgentConfig } from './config.js';
 import { verifyPasswordRecord } from './auth.js';
-import { readPrivateText } from './io.js';
+import { readPrivateText, type JsonResponse } from './io.js';
 import { GatewayClient, type JsonObject } from './gateway.js';
 import { coreClient, dataOf, readJsonBody, relayJson, sameOrigin, sendJson, sessionHeaders, succeeded } from './http.js';
 import { createCatalogBootstrap, MY_AGENT_ID, MY_AGENT_NAME, objectOf, type AdapterRuntime } from './bootstrap.js';
@@ -17,8 +18,50 @@ export async function createMyAgentBridge(options: BridgeOptions) {
   const gateway = new GatewayClient(config);
   const ensureCatalog = createCatalogBootstrap(core, store, options.runtime);
   const attempts = new Map<string, { count: number; since: number }>();
+  const identityCache = new Map<string, { response: JsonResponse; expiresAt: number }>();
+  const inflightIdentity = new Map<string, Promise<JsonResponse>>();
   let verifying = 0;
   let closed = false;
+
+  const sessionKeyOf = (headers: Record<string, string>): string => {
+    const raw = `${headers.cookie || ''}|${headers.authorization || ''}`.trim();
+    return raw ? createHash('sha256').update(raw).digest('hex') : '';
+  };
+
+  const resolveIdentity = async (headers: Record<string, string>): Promise<JsonResponse> => {
+    const key = sessionKeyOf(headers);
+    const now = Date.now();
+    if (key) {
+      const cached = identityCache.get(key);
+      if (cached && cached.expiresAt > now) return cached.response;
+      const pending = inflightIdentity.get(key);
+      if (pending) return pending;
+    }
+    const lookup = core('/api/auth/user', 'GET', undefined, headers).then((res) => {
+      if (key) {
+        inflightIdentity.delete(key);
+        const user = objectOf(res.payload.user ?? objectOf(dataOf(res)).user);
+        if (succeeded(res) && typeof user.id === 'string') {
+          if (identityCache.size >= 512) {
+            for (const [k, v] of identityCache) if (v.expiresAt <= now) identityCache.delete(k);
+            if (identityCache.size >= 512) {
+              const oldest = identityCache.keys().next().value;
+              if (oldest) identityCache.delete(oldest);
+            }
+          }
+          identityCache.set(key, { response: res, expiresAt: Date.now() + 60_000 });
+        } else if (res.status === 401) {
+          identityCache.delete(key);
+        }
+      }
+      return res;
+    }).catch((err) => {
+      if (key) inflightIdentity.delete(key);
+      throw err;
+    });
+    if (key) inflightIdentity.set(key, lookup);
+    return lookup;
+  };
 
   const login = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     if (!sameOrigin(req)) { sendJson(res, 403, { success: false, error: 'CROSS_SITE_REQUEST' }); return; }
@@ -98,7 +141,13 @@ export async function createMyAgentBridge(options: BridgeOptions) {
         sendJson(res, 404, { success: false, error: 'NOT_FOUND' }); return true;
       }
       const method = req.method || 'GET';
-      const tracked = path === '/api/assistants' || path === '/api/agents/management' || path === '/api/providers' ||
+      if (path === '/logout' || path === '/api/auth/logout' || path === '/api/auth/refresh') {
+        const key = sessionKeyOf(sessionHeaders(req));
+        if (key) identityCache.delete(key);
+        return false;
+      }
+      const isAuthUserGet = path === '/api/auth/user' && method === 'GET';
+      const tracked = isAuthUserGet || path === '/api/assistants' || path === '/api/agents/management' || path === '/api/providers' ||
         path === '/api/settings/client' || /^\/api\/conversations(?:\/[^/]+(?:\/messages)?)?$/.test(path);
       if (!(path === '/login' && method === 'POST') && !tracked) return false;
       if (closed) { sendJson(res, 503, { success: false, error: 'BRIDGE_CLOSED' }); return true; }
@@ -109,7 +158,15 @@ export async function createMyAgentBridge(options: BridgeOptions) {
           sendJson(res, 403, { success: false, error: 'CROSS_SITE_REQUEST' }); return true;
         }
         const headers = sessionHeaders(req);
-        const identity = await core('/api/auth/user', 'GET', undefined, headers);
+        const identity = await resolveIdentity(headers);
+        if (isAuthUserGet) {
+          relayJson(res, identity);
+          return true;
+        }
+        if (identity.status === 429) {
+          relayJson(res, identity);
+          return true;
+        }
         const user = objectOf(identity.payload.user ?? objectOf(dataOf(identity)).user);
         if (!succeeded(identity) || typeof user.id !== 'string') {
           sendJson(res, 401, { success: false, error: 'AUTH_REQUIRED' }); return true;
@@ -117,11 +174,16 @@ export async function createMyAgentBridge(options: BridgeOptions) {
         const userId = user.id;
         const admin = user.username === config.adminUsername || !!await store.get('user_settings', `${userId}:my-agent-admin`);
         const body = ['GET', 'HEAD', 'DELETE'].includes(method) ? undefined : await readJsonBody(req);
-        const useAdapter = objectOf(body?.assistant).id === MY_AGENT_ID || body?.assistant_id === MY_AGENT_ID;
+        const assistantId = objectOf(body?.assistant).id ?? body?.assistant_id;
+        const useAdapter = assistantId === MY_AGENT_ID;
         if (admin && ((method === 'GET' && ['/api/assistants', '/api/agents/management', '/api/providers', '/api/settings/client'].includes(path)) || useAdapter)) {
           await ensureCatalog(userId, headers);
         } else if (useAdapter) { sendJson(res, 403, { success: false, error: 'ADMIN_REQUIRED' }); return true; }
         const response = await core(req.url || path, method, body, headers);
+        if (response.status === 401) {
+          const key = sessionKeyOf(headers);
+          if (key) identityCache.delete(key);
+        }
         committed = !['GET', 'HEAD'].includes(method) && succeeded(response);
         if (succeeded(response)) {
           let data = dataOf(response);

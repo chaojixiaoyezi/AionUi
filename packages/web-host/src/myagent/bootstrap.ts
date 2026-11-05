@@ -42,8 +42,14 @@ export function createCatalogBootstrap(core: CoreCall, store: BridgeStore, runti
     } else if (assistant.agent_id !== agentId) {
       await call(`/api/assistants/${MY_AGENT_ID}`, 'PUT', { agent_id: agentId });
     }
+    const bareId = `bare:${agentId}`;
+    const bareAssistant = (catalog as JsonObject[]).find((row) => row.id === bareId);
+    if (bareAssistant && bareAssistant.enabled !== false) {
+      await core(`/api/assistants/${encodeURIComponent(bareId)}/state`, 'PATCH', { enabled: false }, headers).catch(() => undefined);
+    }
     const preferences = objectOf(dataOf(await call('/api/settings/client')));
-    if (preferences['guid.lastAssistantId'] == null) {
+    const lastAssistantId = preferences['guid.lastAssistantId'];
+    if (lastAssistantId == null || (typeof lastAssistantId === 'string' && lastAssistantId.startsWith('bare:'))) {
       await call('/api/settings/client', 'PUT', { 'guid.lastAssistantId': MY_AGENT_ID });
     }
     return agentId;
