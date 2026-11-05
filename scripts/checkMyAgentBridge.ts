@@ -31,11 +31,20 @@ async function mainDispatch(): Promise<void> {
   const dataDir = process.env.AIONUI_MY_AGENT_DATA_DIR || process.env.AIONUI_DATA_DIR;
   if (!dataDir) throw new Error('CORE_DATA_DIR_REQUIRED');
   const store = await openBridgeStore(dataDir);
+  const shutdown = () => {
+    void store.close().catch(() => undefined).finally(() => process.exit(0));
+  };
+  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', shutdown);
   try {
     const userId = process.env.AIONUI_USER_ID || '';
     const conversationId = process.env.AIONUI_CONVERSATION_ID || '';
     await runAcpStdio(new GatewayClient(loadMyAgentConfig()), userId && conversationId ? { userId, conversationId, store } : undefined);
-  } finally { await store.close(); }
+  } finally {
+    process.off('SIGTERM', shutdown);
+    process.off('SIGINT', shutdown);
+    await store.close();
+  }
 }
 
 mainDispatch().catch((error: unknown) => {

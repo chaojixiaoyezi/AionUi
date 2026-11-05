@@ -60,7 +60,9 @@ export function createAcpAgent(client: GatewayClient, notify: (params: JsonObjec
         return method === 'session/set_config_option' ? { configOptions: configOptions(session.models) } : {};
       }
       if (method === 'session/cancel') {
-        await client.cancel(conversation(id)); session.abort?.abort(); return {};
+        session.abort?.abort();
+        await client.cancel(conversation(id));
+        return {};
       }
       if (method !== 'session/prompt') throw new Error('UNSUPPORTED_ACP_METHOD');
       if (session.busy) throw new Error('ACP_SESSION_BUSY');

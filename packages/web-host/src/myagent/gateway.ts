@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { MyAgentConfig } from './config.js';
 import { readPrivateText, requestJson } from './io.js';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -43,8 +44,8 @@ export class GatewayClient {
     }
     throw new Error('GATEWAY_RESULT_TIMEOUT');
   }
-  async cancel(conversationId: string): Promise<void> {
-    await this.call('/control', { command: '/stop', conversation_id: conversationId });
+  async cancel(conversationId: string, messageId: string = randomUUID()): Promise<void> {
+    await this.call('/control', { command: '/stop', conversation_id: conversationId, metadata: { message_id: messageId } });
   }
 }
 

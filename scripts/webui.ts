@@ -282,30 +282,35 @@ async function main(): Promise<void> {
   // user as `system` instead of `admin`, and Electron users can rename it via
   // Settings. Always read it from the backend rather than assuming a value.
   try {
-    const statusRes = await fetch(`http://127.0.0.1:${handle.backendPort}/api/auth/status`);
-    if (statusRes.ok) {
-      const status = (await statusRes.json()) as { needs_setup?: boolean };
-      if (status.needs_setup === true) {
-        const resetRes = await fetch(`http://127.0.0.1:${handle.backendPort}/api/webui/reset-password`, {
-          method: 'POST',
-        });
-        if (resetRes.ok) {
-          const payload = (await resetRes.json()) as { data?: { new_password?: string } };
-          const initialPassword = payload.data?.new_password;
-          if (initialPassword) {
-            const adminUsername = await fetchAdminUsername(handle.backendPort);
-            console.log('');
-            console.log(`Initial admin username: ${adminUsername}`);
-            console.log(`Initial admin password: ${initialPassword}`);
-            console.log('(change them after first login)');
+    if (process.env.MY_AGENT_ENABLED !== '0' && process.env.MY_AGENT_ADMIN_PASSWORD_FILE) {
+      console.log('');
+      console.log(`Login username: ${process.env.MY_AGENT_ADMIN_USERNAME || 'admin'}`);
+    } else {
+      const statusRes = await fetch(`http://127.0.0.1:${handle.backendPort}/api/auth/status`);
+      if (statusRes.ok) {
+        const status = (await statusRes.json()) as { needs_setup?: boolean };
+        if (status.needs_setup === true) {
+          const resetRes = await fetch(`http://127.0.0.1:${handle.backendPort}/api/webui/reset-password`, {
+            method: 'POST',
+          });
+          if (resetRes.ok) {
+            const payload = (await resetRes.json()) as { data?: { new_password?: string } };
+            const initialPassword = payload.data?.new_password;
+            if (initialPassword) {
+              const adminUsername = await fetchAdminUsername(handle.backendPort);
+              console.log('');
+              console.log(`Initial admin username: ${adminUsername}`);
+              console.log(`Initial admin password: ${initialPassword}`);
+              console.log('(change them after first login)');
+            }
           }
+        } else {
+          // Credentials already exist; just remind the user what username to use.
+          const adminUsername = await fetchAdminUsername(handle.backendPort);
+          console.log('');
+          console.log(`Login username: ${adminUsername}`);
+          console.log('(forgot the password? run `bun run resetpass` to generate a new one)');
         }
-      } else {
-        // Credentials already exist; just remind the user what username to use.
-        const adminUsername = await fetchAdminUsername(handle.backendPort);
-        console.log('');
-        console.log(`Login username: ${adminUsername}`);
-        console.log('(forgot the password? run `bun run resetpass` to generate a new one)');
       }
     }
   } catch (err) {

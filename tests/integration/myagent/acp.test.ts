@@ -59,6 +59,12 @@ describe('my-agent ACP Gateway adapter', () => {
     await agent.request('session/set_model', { sessionId: created.sessionId, modelId: 'profile-1' });
     expect(calls).toContainEqual({ path: '/client/models', body: { operation: 'select', profile_id: 'profile-1', conversation_id: `aionui:acp:${created.sessionId}` } });
     await expect(agent.request('session/set_model', { sessionId: created.sessionId, modelId: 'not-advertised' })).rejects.toThrow();
+    await agent.request('session/cancel', { sessionId: created.sessionId });
+    expect(calls.find((call) => call.path === '/control')?.body).toMatchObject({
+      command: '/stop',
+      conversation_id: `aionui:acp:${created.sessionId}`,
+      metadata: { message_id: expect.any(String) },
+    });
   });
   it('rejects unowned sessions and unsupported requests rather than manufacturing responses', async () => {
     const { agent } = await fixture();
