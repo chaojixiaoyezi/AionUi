@@ -1,4 +1,8 @@
 {
+  "languageToggle": "🌐 中文 / EN",
+  "switchToChinese": "Çinceye geç",
+  "switchToEnglish": "İngilizceye geç",
+  "languageSavedLocally": "Bu cihazın dili değiştirildi. Kullanıcı ayarları eşitlenemedi; daha sonra yeniden deneyin.",
   "send": "Gönder",
   "cancel": "İptal",
   "save": "Kaydet",

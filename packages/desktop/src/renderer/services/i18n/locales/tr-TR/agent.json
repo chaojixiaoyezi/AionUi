@@ -1,4 +1,6 @@
 {
+  "myAgent": "my-agent",
+  "myAgentDescription": "my-agent modellerini, araçlarını ve çoklu ajan iş birliğini kullanmak için .10 geliştirme arka ucuna bağlanın.",
   "health": {
     "detectedError": "Detected error with current agent ({{agent}})",
     "autoSwitching": ". System will attempt to switch automatically.",

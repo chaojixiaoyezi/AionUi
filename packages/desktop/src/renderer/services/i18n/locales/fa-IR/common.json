@@ -1,4 +1,8 @@
 {
+  "languageToggle": "🌐 中文 / EN",
+  "switchToChinese": "تغییر به چینی",
+  "switchToEnglish": "تغییر به انگلیسی",
+  "languageSavedLocally": "زبان این دستگاه تغییر کرد. همگام‌سازی تنظیمات انجام نشد؛ بعداً دوباره تلاش کنید.",
   "send": "ارسال",
   "cancel": "لغو",
   "save": "ذخیره",

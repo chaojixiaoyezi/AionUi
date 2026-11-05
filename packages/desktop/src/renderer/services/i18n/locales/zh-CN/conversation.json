@@ -15,8 +15,8 @@
     "quickActionsTitle": "AionUi 能做什么？",
     "quickActionFeedback": "反馈问题",
     "quickActionStar": "喜欢我们？点个星吧",
-    "skillsMarket": "AionUi Skills Market",
-    "skillsMarketDesc": "按需搜索并调用社区 Skills，一次配置，所有Agent通用。",
+    "skillsMarket": "AionUi 技能市场",
+    "skillsMarketDesc": "按需搜索并调用社区技能，一次配置，所有智能体通用。",
     "skillsMarketDetails": "详情 >>"
   },
   "history": {
@@ -103,10 +103,10 @@
     "untitled": "未命名会话"
   },
   "dropdown": {
-    "cliAgents": "CLI Agents",
+    "cliAgents": "命令行智能体",
     "presetAssistants": "预设助手"
   },
-  "noAgentsAvailable": "没有可用的 Agent",
+  "noAgentsAvailable": "没有可用的智能体",
   "noModelConfigured": "未配置模型，请前往设置页面配置。",
   "createFailed": "创建会话失败",
   "createError": {
@@ -120,7 +120,7 @@
     }
   },
   "agentError": {
-    "fallbackTitle": "Agent 未能回复",
+    "fallbackTitle": "智能体未能回复",
     "errorCode": "错误码",
     "retryable": "可重试",
     "notRetryable": "需先处理配置",
@@ -129,10 +129,10 @@
       "retry": "稍后重试，或重新发送这条消息。",
       "wait_for_current_response": "请等待当前回复结束后再发送下一条消息。",
       "start_new_session": "请新建一个对话后继续。",
-      "reconnect_agent": "请重启或重新连接所选 Agent 后重试。",
-      "check_agent_login": "请先登录所选 Agent，或刷新它的凭证。",
-      "check_agent_installation": "请检查 Agent 的安装状态和本地命令配置。",
-      "check_agent_version": "请检查 Agent 协议和版本兼容性。",
+      "reconnect_agent": "请重启或重新连接所选智能体后重试。",
+      "check_agent_login": "请先登录所选智能体，或刷新它的凭证。",
+      "check_agent_installation": "请检查智能体的安装状态和本地命令配置。",
+      "check_agent_version": "请检查智能体协议和版本兼容性。",
       "check_local_command": "请安装缺失的命令，或确认它已经加入 PATH。",
       "check_provider_credentials": "请在设置中检查模型服务商的 API Key 或账号凭证。",
       "check_provider_billing": "请检查模型服务商的余额、额度或配额。",
@@ -143,7 +143,7 @@
     },
     "ownership": {
       "aionui": "应用",
-      "user_agent": "Agent",
+      "user_agent": "智能体",
       "user_llm_provider": "模型服务商",
       "unknown_upstream": "上游"
     },
@@ -169,80 +169,80 @@
         "body": "当前会话还有回复未结束。请等待本次回复完成后再发送新的消息。"
       },
       "USER_AGENT_NOT_INSTALLED": {
-        "title": "所选 Agent 未安装",
-        "body": "请先安装该 Agent 依赖的 CLI 或应用，然后在设置中重新连接。"
+        "title": "所选智能体未安装",
+        "body": "请先安装该智能体依赖的 CLI 或应用，然后在设置中重新连接。"
       },
       "USER_AGENT_STARTUP_FAILED": {
-        "title": "所选 Agent 启动失败",
-        "body": "Agent 进程在准备完成前退出了。请检查安装、登录状态和本地命令配置。"
+        "title": "所选智能体启动失败",
+        "body": "智能体进程在准备完成前退出了。请检查安装、登录状态和本地命令配置。"
       },
       "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
         "title": "OpenClaw Gateway 未运行",
         "body": "OpenClaw Gateway 未运行，或无法连接到 127.0.0.1:18789。\n\n请启动 OpenClaw Gateway 后重试。你可以在终端运行：\nopenclaw gateway status\nopenclaw gateway start"
       },
       "USER_AGENT_DISCONNECTED": {
-        "title": "所选 Agent 已断开连接",
-        "body": "Agent 在处理本次消息时断开了连接。请重启或重新连接 Agent 后重试。"
+        "title": "所选智能体已断开连接",
+        "body": "智能体在处理本次消息时断开了连接。请重启或重新连接智能体后重试。"
       },
       "USER_AGENT_AUTH_REQUIRED": {
-        "title": "所选 Agent 需要登录",
-        "body": "请先登录该 Agent 或刷新凭证，然后重新发送消息。"
+        "title": "所选智能体需要登录",
+        "body": "请先登录该智能体或刷新凭证，然后重新发送消息。"
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
-        "title": "Agent 会话已丢失",
-        "body": "Agent 报告找不到当前会话，或已不再识别该会话。"
+        "title": "智能体会话已丢失",
+        "body": "智能体报告找不到当前会话，或已不再识别该会话。"
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
-        "title": "所选 Agent 不支持该操作",
-        "body": "Agent 报告请求的 ACP 方法不受支持，或当前不可用。"
+        "title": "所选智能体不支持该操作",
+        "body": "智能体报告请求的 ACP 方法不受支持，或当前不可用。"
       },
       "USER_AGENT_INVALID_PARAMS": {
-        "title": "所选 Agent 拒绝了请求",
-        "body": "Agent 报告请求参数无效。"
+        "title": "所选智能体拒绝了请求",
+        "body": "智能体报告请求参数无效。"
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
-        "title": "Agent 握手失败",
-        "body": "所选 Agent 未能完成启动握手。请重启或重新连接该 Agent 后重试。"
+        "title": "智能体握手失败",
+        "body": "所选智能体未能完成启动握手。请重启或重新连接该智能体后重试。"
       },
       "USER_AGENT_HANDSHAKE_TIMEOUT": {
-        "title": "Agent 握手超时",
-        "body": "所选 Agent 未在预期时间内完成启动握手。请确认它没有卡在启动或登录流程中，然后重试。"
+        "title": "智能体握手超时",
+        "body": "所选智能体未在预期时间内完成启动握手。请确认它没有卡在启动或登录流程中，然后重试。"
       },
       "USER_AGENT_ACP_INIT_FAILED": {
-        "title": "Agent 协议初始化失败",
-        "body": "应用无法和该 Agent 初始化 Agent Client Protocol 会话。"
+        "title": "智能体协议初始化失败",
+        "body": "应用无法与该智能体初始化 Agent Client Protocol 会话。"
       },
       "USER_AGENT_PROTOCOL_PARSE_ERROR": {
-        "title": "Agent 报告了协议解析错误",
-        "body": "所选 Agent 报告某条 ACP/JSON-RPC 消息无法解析。"
+        "title": "智能体报告了协议解析错误",
+        "body": "所选智能体报告某条 ACP/JSON-RPC 消息无法解析。"
       },
       "USER_AGENT_INVALID_REQUEST": {
-        "title": "Agent 报告协议请求无效",
-        "body": "所选 Agent 报告 ACP/JSON-RPC 请求对象无效。"
+        "title": "智能体报告协议请求无效",
+        "body": "所选智能体报告 ACP/JSON-RPC 请求对象无效。"
       },
       "USER_AGENT_RESOURCE_NOT_FOUND": {
-        "title": "Agent 找不到所需资源",
-        "body": "所选 Agent 报告找不到所需资源，例如某个文件。"
+        "title": "智能体找不到所需资源",
+        "body": "所选智能体报告找不到所需资源，例如某个文件。"
       },
       "USER_AGENT_PROTOCOL_ERROR": {
-        "title": "Agent 返回了协议错误",
-        "body": "所选 Agent 返回了非标准 ACP 错误码。"
+        "title": "智能体返回了协议错误",
+        "body": "所选智能体返回了非标准 ACP 错误码。"
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
-        "title": "Agent 协议版本不兼容",
-        "body": "应用和所选 Agent 无法使用兼容的 ACP 协议版本。"
+        "title": "智能体协议版本不兼容",
+        "body": "应用和所选智能体无法使用兼容的 ACP 协议版本。"
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
-        "title": "无法恢复上一次 Agent 会话",
-        "body": "Agent 无法恢复之前的会话状态。请新建对话后继续。"
+        "title": "无法恢复上一次智能体会话",
+        "body": "智能体无法恢复之前的会话状态。请新建对话后继续。"
       },
       "USER_AGENT_COMMAND_NOT_FOUND": {
-        "title": "找不到 Agent 命令",
-        "body": "未找到已配置的 Agent 命令。请先安装该命令，或在设置中更新命令路径。"
+        "title": "找不到智能体命令",
+        "body": "未找到已配置的智能体命令。请先安装该命令，或在设置中更新命令路径。"
       },
       "USER_AGENT_MISSING_ENV": {
-        "title": "Agent 缺少必要环境变量",
-        "body": "该 Agent 需要的环境变量尚未配置。请在设置或 shell 环境中补齐后重新连接。"
+        "title": "智能体缺少必要环境变量",
+        "body": "该智能体需要的环境变量尚未配置。请在设置或 shell 环境中补齐后重新连接。"
       },
       "USER_LLM_PROVIDER_AUTH_FAILED": {
         "title": "模型服务商鉴权失败",
@@ -298,7 +298,7 @@
       },
       "USER_LLM_PROVIDER_INVALID_TOOL_SCHEMA": {
         "title": "模型服务商拒绝了工具定义",
-        "body": "服务商拒绝了本次请求中的工具定义。请更新 Agent，或禁用不兼容的工具后重试。"
+        "body": "服务商拒绝了本次请求中的工具定义。请更新智能体，或禁用不兼容的工具后重试。"
       },
       "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
         "title": "上下文超出模型限制",
@@ -309,13 +309,13 @@
         "body": "服务商完成了请求，但没有返回可用内容。请先重试一次；如果反复出现，可切换服务商。"
       },
       "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
-        "title": "当前 Agent 在该工作区路径下运行失败",
+        "title": "当前智能体在该工作区路径下运行失败",
         "body": "请确保当前工作区路径真实存在。",
-        "bodyWithPath": "当前 Agent 在该工作区路径下运行失败。请确保工作区路径“{{workspacePath}}”真实存在。"
+        "bodyWithPath": "当前智能体在该工作区路径下运行失败。请确保工作区路径“{{workspacePath}}”真实存在。"
       },
       "UNKNOWN_UPSTREAM_ERROR": {
-        "title": "上游 Agent 或模型服务商出错",
-        "body": "收到上游错误，但暂时无法判断它来自 Agent、模型服务商、网络还是本地环境。"
+        "title": "上游智能体或模型服务商出错",
+        "body": "收到上游错误，但暂时无法判断它来自智能体、模型服务商、网络还是本地环境。"
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "读取团队辅助进程响应失败",
@@ -456,8 +456,8 @@
     "apiErrorSwitchFailed": "创建回退会话失败。",
     "apiErrorSwitched": "API 错误，已自动切换到 {{cli}} CLI",
     "confirmationLoadError": "确认对话框加载失败",
-    "tryAnotherAgent": "尝试其他 Agent：",
-    "switchAgentFailed": "切换 Agent 失败",
+    "tryAnotherAgent": "尝试其他智能体：",
+    "switchAgentFailed": "切换智能体失败",
     "speech": {
       "recordTooltip": "开始语音输入",
       "recordTooltipWithShortcut": "语音输入 cmd+M",
@@ -529,10 +529,10 @@
     },
     "addToQueue": "存到草稿箱",
     "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
-    "midturnBlocked": "当前 Agent 正在处理，暂时不能直接发送。可以先存到草稿箱，稍后发送。",
+    "midturnBlocked": "当前智能体正在处理，暂时不能直接发送。可以先存到草稿箱，稍后发送。",
     "enterShortcut": "Enter",
-    "actionMode": "Choose send action",
-    "midturnBlockedSendHint": "当前 Agent 正在处理，暂时不能直接发送。可以先存到草稿箱，稍后发送。",
+    "actionMode": "选择发送方式",
+    "midturnBlockedSendHint": "当前智能体正在处理，暂时不能直接发送。可以先存到草稿箱，稍后发送。",
     "addToQueueBusyHint": "先存到草稿箱，稍后发送。"
   },
   "contextUsage": {
@@ -592,7 +592,7 @@
   },
   "sendbox": {
     "hint": "输入 / 唤起命令，@ 引用文件，↑/↓ 切换历史消息",
-    "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。",
+    "mediaPathFallback": "该智能体不原生支持此文件类型，将以文件路径形式发送。",
     "hintWithSessions": "输入 / 唤起命令，@ 引用文件，@@ 引用会话，↑/↓ 切换历史消息"
   },
   "agentTip": {
@@ -625,7 +625,7 @@
         "body": "已安装的 {{cli}} 高于 AionUi 验证过的版本。通常仍可正常使用；如遇异常行为请反馈。 （本地 {{reported}} / AionUi 验证过 {{verified}}）"
       },
       "CODEX_RETRYING": {
-        "body": "{{detail}}（累计第 {{attempts}} 次重试，已等待 {{elapsed}}——Agent 的服务方反复中断连接，AionUi 正在等待重连。）"
+        "body": "{{detail}}（累计第 {{attempts}} 次重试，已等待 {{elapsed}}——智能体的服务方反复中断连接，AionUi 正在等待重连。）"
       }
     }
   },

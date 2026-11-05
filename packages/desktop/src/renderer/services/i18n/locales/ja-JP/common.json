@@ -1,4 +1,8 @@
 {
+  "languageToggle": "🌐 中文 / EN",
+  "switchToChinese": "中国語に切り替える",
+  "switchToEnglish": "英語に切り替える",
+  "languageSavedLocally": "この端末の言語を変更しました。設定を同期できませんでした。後で再試行してください。",
   "send": "送信",
   "cancel": "キャンセル",
   "save": "保存",

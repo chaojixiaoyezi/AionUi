@@ -1,4 +1,6 @@
 {
+  "myAgent": "my-agent",
+  "myAgentDescription": "Connect to the .10 coding backend with shared my-agent models, tools and multi-agent collaboration.",
   "health": {
     "detectedError": "Detected error with current agent ({{agent}})",
     "autoSwitching": ". System will attempt to switch automatically.",

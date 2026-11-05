@@ -17,6 +17,8 @@ vi.mock('@/common', () => ({
 vi.mock('@/common/config/constants', () => ({ TEAM_MODE_ENABLED: false }));
 vi.mock('@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover', () => ({ default: () => null }));
 vi.mock('@/renderer/components/layout/Titlebar/MobileConversationBrand', () => ({ default: () => null }));
+// Language persistence has its own real-component tests; keep this workspace contract isolated.
+vi.mock('@/renderer/components/layout/Titlebar/LanguageToggle', () => ({ default: () => null }));
 vi.mock('@/renderer/components/layout/WindowControls', () => ({
   default: () => <div data-testid='window-controls' />,
 }));

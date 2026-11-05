@@ -1,4 +1,8 @@
 {
+  "languageToggle": "🌐 中文 / EN",
+  "switchToChinese": "Passer au chinois",
+  "switchToEnglish": "Passer à l’anglais",
+  "languageSavedLocally": "La langue a été modifiée sur cet appareil. Les paramètres n’ont pas pu être synchronisés ; réessayez plus tard.",
   "send": "Envoyer",
   "cancel": "Annuler",
   "save": "Enregistrer",

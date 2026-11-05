@@ -1,4 +1,6 @@
 {
+  "myAgent": "my-agent",
+  "myAgentDescription": "Connectez-vous au serveur de développement .10 avec les modèles, outils et fonctions de collaboration de my-agent.",
   "health": {
     "detectedError": "Erreur détectée avec l'agent actuel ({{agent}})",
     "autoSwitching": ". Le système va tenter de basculer automatiquement.",

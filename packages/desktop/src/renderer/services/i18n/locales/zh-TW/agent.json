@@ -1,4 +1,6 @@
 {
+  "myAgent": "my-agent",
+  "myAgentDescription": "連線至 .10 研發編碼後端，統一使用 my-agent 的模型、工具及多智慧體協作能力。",
   "health": {
     "detectedError": "檢測到當前 Agent ({{agent}}) 回應異常",
     "autoSwitching": "。系統將自動嘗試切換線路。",

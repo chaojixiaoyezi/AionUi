@@ -1,4 +1,8 @@
 {
+  "languageToggle": "🌐 中文 / EN",
+  "switchToChinese": "Switch to 中文",
+  "switchToEnglish": "Switch to English",
+  "languageSavedLocally": "Language changed on this device. User settings could not be synced; please retry later.",
   "send": "Send",
   "cancel": "Cancel",
   "save": "Save",

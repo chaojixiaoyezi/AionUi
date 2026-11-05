@@ -1,4 +1,6 @@
 {
+  "myAgent": "my-agent",
+  "myAgentDescription": ".10 개발 백엔드에 연결하여 my-agent 모델, 도구 및 다중 에이전트 협업을 사용합니다.",
   "health": {
     "detectedError": "현재 에이전트 ({{agent}})에서 오류 감지됨",
     "autoSwitching": ". 시스템이 자동으로 전환을 시도합니다.",

@@ -1,0 +1,19 @@
+.toggle {
+  -webkit-app-region: no-drag;
+  direction: ltr;
+  flex-shrink: 0;
+  min-width: 112px;
+  height: 30px;
+  padding-inline: 12px;
+  border: 1px solid var(--border-base);
+  background: var(--bg-1);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

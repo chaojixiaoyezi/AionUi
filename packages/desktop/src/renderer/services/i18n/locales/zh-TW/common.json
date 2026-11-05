@@ -1,4 +1,8 @@
 {
+  "languageToggle": "🌐 中文 / EN",
+  "switchToChinese": "切換至簡體中文",
+  "switchToEnglish": "切換至 English",
+  "languageSavedLocally": "語言已在此裝置切換；使用者設定暫未同步，請稍後重試。",
   "send": "發送",
   "cancel": "取消",
   "save": "儲存",

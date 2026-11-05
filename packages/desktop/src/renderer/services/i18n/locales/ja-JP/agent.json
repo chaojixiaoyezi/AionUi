@@ -1,4 +1,6 @@
 {
+  "myAgent": "my-agent",
+  "myAgentDescription": ".10 開発バックエンドに接続し、my-agent のモデル、ツール、マルチエージェント連携を利用します。",
   "health": {
     "detectedError": "現在のエージェント ({{agent}}) の応答エラーを検出しました",
     "autoSwitching": "。システムは自動的に切り替えを試みます。",

@@ -1,4 +1,6 @@
 {
+  "myAgent": "my-agent",
+  "myAgentDescription": "Conecta al backend de desarrollo .10 con modelos, herramientas y colaboración entre agentes de my-agent.",
   "health": {
     "detectedError": "Se detectó un error con el agente actual ({{agent}})",
     "autoSwitching": ". El sistema intentará cambiar automáticamente.",

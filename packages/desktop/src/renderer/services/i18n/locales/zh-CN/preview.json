@@ -12,7 +12,7 @@
   "previewEffect": "预览效果",
   "downloadMarkdown": "下载 Markdown 文件",
   "downloadCode": "下载 {{language}} 文件",
-  "downloadDiff": "下载 Diff 文件",
+  "downloadDiff": "下载差异文件",
   "addToChat": "添加到会话",
   "openSplitScreen": "开启分屏",
   "closeSplitScreen": "关闭分屏",
@@ -149,9 +149,9 @@
   "browser": {
     "newTab": "新建标签页",
     "addressPlaceholder": "输入网址或搜索内容",
-    "agentActiveTooltip": "Agent 正在操作此标签页",
+    "agentActiveTooltip": "智能体正在操作此标签页",
     "tabLimitReached": "标签页数量已达上限（{{count}} 个），已复用最早打开的标签页。",
-    "agentFirstUseTitle": "Agent 正在使用应用内浏览器",
+    "agentFirstUseTitle": "智能体正在使用应用内浏览器",
     "agentFirstUseContent": "它可以在这个面板里打开网页、点击和读取内容。你的登录状态会被保留。",
     "agentFirstUseAction": "前往设置"
   },

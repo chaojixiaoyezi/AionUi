@@ -1,4 +1,6 @@
 {
+  "myAgent": "my-agent",
+  "myAgentDescription": "اتصال به پشتیبان توسعه .10 با مدل‌ها، ابزارها و همکاری چندعاملی my-agent.",
   "health": {
     "detectedError": "خطایی در عامل فعلی ({{agent}}) شناسایی شد",
     "autoSwitching": ". سیستم تلاش می‌کند به‌صورت خودکار جابه‌جا شود.",

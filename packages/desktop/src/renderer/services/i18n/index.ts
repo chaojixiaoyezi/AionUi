@@ -36,6 +36,13 @@ export type { SupportedLanguage } from '@/common/config/i18n';
 
 export const supportedLanguages = i18nConfig.supportedLanguages;
 
+// The UI default is independent of the reference/fallback translation language.
+const DEFAULT_UI_LANGUAGE = 'zh-CN';
+const PENDING_LANGUAGE_KEY = 'aionui:pending-language';
+let languageRevision = 0;
+let pendingLanguage = readStorage(PENDING_LANGUAGE_KEY);
+let persistence: Promise<void> = Promise.resolve();
+
 const localeData: LocaleData = {
   'en-US': enUS,
   'zh-CN': zhCN,
@@ -67,9 +74,30 @@ function getLocaleModules(locale: string): Record<string, unknown> {
   return mergeWithFallback(fallbackLocale, modules);
 }
 
-function getLocalStorageLanguageHint(): string | null {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('i18nextLng');
+function readStorage(key: string): string | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage.getItem(key)?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLanguageHint(language: string): void {
+  try {
+    localStorage.setItem('i18nextLng', language);
+  } catch {
+    // Restricted browser storage must not prevent an in-memory language switch.
+  }
+}
+
+function setPendingLanguage(language: string | null): void {
+  pendingLanguage = language;
+  try {
+    if (language) localStorage.setItem(PENDING_LANGUAGE_KEY, language);
+    else localStorage.removeItem(PENDING_LANGUAGE_KEY);
+  } catch {
+    // The in-memory pending preference can still be synchronized after login.
+  }
 }
 
 function getInjectedLanguageHint(): string | null {
@@ -78,21 +106,15 @@ function getInjectedLanguageHint(): string | null {
   return typeof language === 'string' && language.trim() !== '' ? language : null;
 }
 
-function getElectronSystemLanguageHint(): string | null {
-  if (typeof window === 'undefined' || !window.electronAPI) return null;
-  return navigator.language || null;
-}
-
 function getInitialLanguage(): SupportedLanguage {
   const backendStartupFailed =
     typeof window !== 'undefined' && (window as Window & { __backendStartupFailed?: boolean }).__backendStartupFailed;
-  const localStorageLanguage = getLocalStorageLanguageHint();
+  const localStorageLanguage = readStorage('i18nextLng');
   const injectedLanguage = getInjectedLanguageHint();
-  const systemLanguage = backendStartupFailed ? getElectronSystemLanguageHint() : null;
   const hint = backendStartupFailed
-    ? injectedLanguage || localStorageLanguage || systemLanguage
+    ? injectedLanguage || localStorageLanguage
     : localStorageLanguage || injectedLanguage;
-  return normalizeLanguageCode(hint || DEFAULT_LANGUAGE);
+  return normalizeLanguageCode(pendingLanguage || hint || DEFAULT_UI_LANGUAGE);
 }
 
 async function loadLocaleModules(locale: string): Promise<Record<string, unknown>> {
@@ -142,15 +164,19 @@ i18n
 // fetched from the backend rather than the empty cache that exists during
 // module load.
 async function initLanguage(): Promise<void> {
+  const revision = languageRevision;
   try {
     await configService.whenReady();
-    const savedLanguage = configService.get('language');
-    const language = savedLanguage || normalizeLanguageCode(navigator.language || DEFAULT_LANGUAGE);
-    await ensureAndSwitch(i18n, language, loadLocaleModules);
-    // Sync to localStorage so next page load can use it as a fast hint
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('i18nextLng', normalizeLanguageCode(language));
+    // A click made while settings were loading is newer than the startup snapshot.
+    if (revision !== languageRevision) return;
+    if (pendingLanguage) {
+      await syncPendingLanguage();
+      return;
     }
+    const savedLanguage = configService.get('language');
+    const language = normalizeLanguageCode(savedLanguage || getInitialLanguage());
+    await ensureAndSwitch(i18n, language, loadLocaleModules);
+    writeLanguageHint(language);
   } catch (error) {
     console.error('Failed to initialize language:', error);
   }
@@ -184,27 +210,46 @@ void initLanguage();
 // the other updates immediately without requiring a restart.
 ipcBridge.systemSettings.languageChanged.on(async ({ language }) => {
   const normalized = normalizeLanguageCode(language);
-  // Skip if already on this language (we're the one who triggered the change)
+  // A previous save may echo while a newer local choice is still being saved.
+  if (pendingLanguage && pendingLanguage !== normalized) return;
+  // Remote choices also invalidate any older startup settings snapshot.
+  languageRevision += 1;
+  writeLanguageHint(normalized);
   if (i18n.language === normalized) return;
   await ensureAndSwitch(i18n, normalized, loadLocaleModules);
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('i18nextLng', normalized);
-  }
 });
 
 /**
- * Change language with lazy loading.
+ * Retry a locally selected language after login. Serialize writes so a slower
+ * earlier save cannot overwrite a newer click, and keep failed saves pending.
  */
+export function syncPendingLanguage(): Promise<void> {
+  const language = pendingLanguage;
+  if (!language) return Promise.resolve();
+  const save = persistence
+    .catch(() => {})
+    .then(async () => {
+      if (pendingLanguage !== language) return;
+      await configService.set('language', language);
+      if (pendingLanguage !== language) return;
+      // This is a real PATCH to system settings, not a fire-and-forget notification.
+      await ipcBridge.systemSettings.changeLanguage.invoke({ language });
+      if (pendingLanguage !== language) return;
+      setPendingLanguage(null);
+    });
+  persistence = save;
+  return save;
+}
+
+/** Switch immediately and retain the browser preference even before login. */
 export async function changeLanguage(lang: string): Promise<void> {
-  await ensureAndSwitch(i18n, lang, loadLocaleModules);
+  languageRevision += 1;
   const normalized = normalizeLanguageCode(lang);
-  await configService.set('language', normalized);
-  // Keep localStorage in sync so WebUI can use it as a fast hint on next load
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('i18nextLng', normalized);
-  }
-  // Notify main process to sync i18n (for tray menu, etc.)
-  ipcBridge.systemSettings.changeLanguage.invoke({ language: normalized }).catch(() => {});
+  // Record intent before any await so an older echo cannot win during bundle loading.
+  writeLanguageHint(normalized);
+  setPendingLanguage(normalized);
+  await ensureAndSwitch(i18n, normalized, loadLocaleModules);
+  await syncPendingLanguage();
 }
 
 // Clear translation cache (useful for development/testing)
