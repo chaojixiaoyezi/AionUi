@@ -243,9 +243,16 @@ async function main(): Promise<void> {
       workDir: workDir,
       logDir,
     },
+    myAgent: process.env.MY_AGENT_ENABLED === '0' ? undefined : {
+      runtime: { command: process.execPath, args: [
+        ...(path.basename(process.execPath).startsWith('bun') ? [] : [fileURLToPath(import.meta.resolve('tsx/cli'))]),
+        path.join(repoRoot, 'scripts/checkMyAgentBridge.ts'), '--acp',
+      ] },
+    },
     backend: {
       kind: 'ownBackend',
       resolveBackend: () => backendBin,
+      local: false,
     },
   });
 
