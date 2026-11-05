@@ -42,10 +42,14 @@ export function createCatalogBootstrap(core: CoreCall, store: BridgeStore, runti
     } else if (assistant.agent_id !== agentId) {
       await call(`/api/assistants/${MY_AGENT_ID}`, 'PUT', { agent_id: agentId });
     }
-    const bareId = `bare:${agentId}`;
-    const bareAssistant = (catalog as JsonObject[]).find((row) => row.id === bareId);
-    if (bareAssistant && bareAssistant.enabled !== false) {
-      await core(`/api/assistants/${encodeURIComponent(bareId)}/state`, 'PATCH', { enabled: false }, headers).catch(() => undefined);
+    const bareIds = new Set<string>([`bare:${agentId}`]);
+    for (const row of management as JsonObject[]) {
+      if (row.name === MY_AGENT_NAME && typeof row.id === 'string') bareIds.add(`bare:${row.id}`);
+    }
+    for (const row of catalog as JsonObject[]) {
+      if (typeof row.id === 'string' && row.id.startsWith('bare:') && (bareIds.has(row.id) || row.name === MY_AGENT_NAME) && row.enabled !== false) {
+        await core(`/api/assistants/${encodeURIComponent(row.id)}/state`, 'PATCH', { enabled: false }, headers).catch(() => undefined);
+      }
     }
     const preferences = objectOf(dataOf(await call('/api/settings/client')));
     const lastAssistantId = preferences['guid.lastAssistantId'];

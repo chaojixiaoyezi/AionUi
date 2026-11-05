@@ -20,8 +20,32 @@ export async function createMyAgentBridge(options: BridgeOptions) {
   const attempts = new Map<string, { count: number; since: number }>();
   const identityCache = new Map<string, { response: JsonResponse; expiresAt: number }>();
   const inflightIdentity = new Map<string, Promise<JsonResponse>>();
+  const modelsCache = new Map<string, { profiles: { id: string; model_name: string }[]; expiresAt: number }>();
+  const inflightModels = new Map<string, Promise<{ id: string; model_name: string }[]>>();
   let verifying = 0;
   let closed = false;
+
+  const resolveModels = (userId: string): Promise<{ id: string; model_name: string }[]> => {
+    const now = Date.now();
+    const cached = modelsCache.get(userId);
+    if (cached && cached.expiresAt > now) return Promise.resolve(cached.profiles);
+    const pending = inflightModels.get(userId);
+    if (pending) return pending;
+    const lookup = gateway.models(`aionui:${userId}:catalog`).then(async (catalog) => {
+      inflightModels.delete(userId);
+      if (!Array.isArray(catalog.profiles)) throw new Error('INVALID_GATEWAY_MODELS');
+      const profiles = (catalog.profiles as JsonObject[]).filter((p) => typeof p.id === 'string' && p.enabled !== false)
+        .map((p) => ({ id: String(p.id), model_name: String(p.model_name || p.name || p.id) }));
+      modelsCache.set(userId, { profiles, expiresAt: Date.now() + 30_000 });
+      await store.write([{ table: 'sync_metadata', key: `${userId}:models`, value: { profiles, synced_at: Date.now() } }]);
+      return profiles;
+    }).catch((err) => {
+      inflightModels.delete(userId);
+      throw err;
+    });
+    inflightModels.set(userId, lookup);
+    return lookup;
+  };
 
   const sessionKeyOf = (headers: Record<string, string>): string => {
     const raw = `${headers.cookie || ''}|${headers.authorization || ''}`.trim();
@@ -188,14 +212,10 @@ export async function createMyAgentBridge(options: BridgeOptions) {
         if (succeeded(response)) {
           let data = dataOf(response);
           if (path === '/api/providers' && method === 'GET' && admin) {
-            const catalog = await gateway.models(`aionui:${userId}:catalog`);
-            if (!Array.isArray(catalog.profiles)) throw new Error('INVALID_GATEWAY_MODELS');
-            const profiles = (catalog.profiles as JsonObject[]).filter((p) => typeof p.id === 'string' && p.enabled !== false)
-              .map((p) => ({ id: p.id, model_name: String(p.model_name || p.name || p.id) }));
+            const profiles = await resolveModels(userId);
             const provider = { id: MY_AGENT_ID, name: MY_AGENT_NAME, platform: 'custom', base_url: '', api_key: '', models: profiles.map((p) => p.model_name), readonly: true, profiles };
             data = [provider, ...(Array.isArray(data) ? data : [])];
             response.payload = { ...response.payload, data };
-            await store.write([{ table: 'sync_metadata', key: `${userId}:models`, value: { profiles, synced_at: Date.now() } }]);
           }
           if (path === '/api/assistants' && method === 'GET' && admin && Array.isArray(data)) {
             data = [...data].sort((a, b) => Number(objectOf(b).id === MY_AGENT_ID) - Number(objectOf(a).id === MY_AGENT_ID));

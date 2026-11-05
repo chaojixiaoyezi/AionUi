@@ -36,7 +36,20 @@ const DEFAULT_PORT = (() => {
 const BACKEND_BINARY = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
 
 const __filename = fileURLToPath(import.meta.url);
-const repoRoot = path.resolve(path.dirname(__filename), '..');
+const realRepoRoot = path.resolve(path.dirname(__filename), '..');
+const repoRoot = (() => {
+  for (const candidate of [process.env.AIONUI_REPO_ROOT, process.env.PWD, '/opt/aionui/current']) {
+    if (!candidate) continue;
+    try {
+      if (fs.realpathSync(candidate) === fs.realpathSync(realRepoRoot)) {
+        return candidate;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return realRepoRoot;
+})();
 
 const args = process.argv.slice(2);
 const has = (name: string): boolean => args.includes(name);
