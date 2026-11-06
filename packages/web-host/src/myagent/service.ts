@@ -7,6 +7,7 @@ import { readPrivateText, type JsonResponse } from './io.js';
 import { GatewayClient, type JsonObject } from './gateway.js';
 import { coreClient, dataOf, readJsonBody, relayJson, sameOrigin, sendJson, sessionHeaders, succeeded } from './http.js';
 import { createCatalogBootstrap, MY_AGENT_ID, MY_AGENT_NAME, objectOf, type AdapterRuntime } from './bootstrap.js';
+import { handleMyAgentRoutes } from './routes.js';
 
 export type BridgeOptions = { backendPort: number; dataDir: string; bootstrapSecret: string; env: NodeJS.ProcessEnv; runtime: AdapterRuntime };
 
@@ -185,6 +186,18 @@ export async function createMyAgentBridge(options: BridgeOptions) {
         const key = sessionKeyOf(sessionHeaders(req));
         if (key) identityCache.delete(key);
         return false;
+      }
+      if (path.startsWith('/api/myagent/')) {
+        if (closed) { sendJson(res, 503, { success: false, error: 'BRIDGE_CLOSED' }); return true; }
+        return handleMyAgentRoutes(req, res, {
+          gateway,
+          requireAuth: async (r) => {
+            const idRes = await resolveIdentity(sessionHeaders(r));
+            const u = objectOf(idRes.payload.user ?? objectOf(dataOf(idRes)).user);
+            return succeeded(idRes) && typeof u.id === 'string';
+          },
+          requireCsrf: (r) => sameOrigin(r),
+        });
       }
       const isAuthUserGet = path === '/api/auth/user' && method === 'GET';
       const tracked = isAuthUserGet || path === '/api/assistants' || path === '/api/agents/management' || path === '/api/providers' ||
