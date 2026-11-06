@@ -203,7 +203,9 @@ export async function createMyAgentBridge(options: BridgeOptions) {
         let caller: Caller | undefined;
         try { caller = await resolveCaller(req); }
         catch { sendJson(res, 502, { success: false, error: 'MY_AGENT_GATEWAY_UNAVAILABLE' }); return true; }
-        if (caller && caller.identity === null && isGatewayBridgePath(path)) {
+        // Legacy routes match the raw URL; the host path is decoded and may contain an encoded ID's slash.
+        const rawGatewayPath = new URL(req.url || '/', 'http://localhost').pathname;
+        if (caller && caller.identity === null && (isGatewayBridgePath(path) || isGatewayBridgePath(rawGatewayPath))) {
           sendJson(res, 403, { success: false, error: 'GATEWAY_IDENTITY_UNAVAILABLE' }); return true;
         }
         const scoped = gatewayFor(caller?.identity ?? undefined);

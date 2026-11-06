@@ -425,6 +425,33 @@ describe('Gateway sessions and per-user bridge identity', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it.each(['a%2Fb', '%2F', 'a%252Fb'])('rejects unavailable identities on encoded approval id %s', async (id) => {
+    for (const [user, env] of [
+      ['bad', {}],
+      ['alice', { MY_AGENT_GATEWAY_USER_CHANNEL: 'CHAT' }],
+    ] as const) {
+      const { request, calls } = await fixture(env);
+      const response = await request(`/api/myagent/approvals/${id}/decide`, user, 'POST', { decision: 'deny' });
+      expect(response).toMatchObject({
+        status: 403,
+        payload: { success: false, error: 'GATEWAY_IDENTITY_UNAVAILABLE' },
+      });
+      expect(calls).toEqual([]);
+    }
+  });
+
+  it('keeps valid callers scoped when an approval id contains an encoded slash', async () => {
+    const { request, calls } = await fixture();
+    expect((await request('/api/myagent/approvals/a%2Fb/decide', 'alice', 'POST', { decision: 'deny' })).status).toBe(
+      200
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      headers: { 'x-user-id': 'alice', 'x-channel': 'local' },
+      body: { params: { approval_id: 'a/b', decision: 'deny' } },
+    });
+  });
+
   it('scopes approval decisions and honors the persisted admin rule', async () => {
     const { request, calls, bridge } = await fixture();
     expect((await request('/api/myagent/approvals/a1/decide', 'alice', 'POST', { decision: 'deny' })).status).toBe(200);
