@@ -4,10 +4,11 @@ import { openBridgeStore, type BridgeStore, type StoreEntry } from './store.js';
 import { loadMyAgentConfig } from './config.js';
 import { verifyPasswordRecord } from './auth.js';
 import { readPrivateText, type JsonResponse } from './io.js';
-import { GatewayClient, type JsonObject } from './gateway.js';
+import { GatewayClient, type GatewayIdentity, type JsonObject } from './gateway.js';
 import { coreClient, dataOf, readJsonBody, relayJson, sameOrigin, sendJson, sessionHeaders, succeeded } from './http.js';
 import { createCatalogBootstrap, MY_AGENT_ID, MY_AGENT_NAME, objectOf, type AdapterRuntime } from './bootstrap.js';
 import { handleMyAgentRoutes } from './routes.js';
+import { gatewayIdentityFor, handleExternalConversation, handleSessionProgress, isExternalConversationPath, isGatewayBridgePath, mergeGatewaySessions, type Caller } from './sessions.js';
 
 export type BridgeOptions = { backendPort: number; dataDir: string; bootstrapSecret: string; env: NodeJS.ProcessEnv; runtime: AdapterRuntime };
 
@@ -103,6 +104,16 @@ export async function createMyAgentBridge(options: BridgeOptions) {
     return lookup;
   };
 
+  const resolveCaller = async (req: IncomingMessage): Promise<Caller | undefined> => {
+    const identity = await resolveIdentity(sessionHeaders(req));
+    const user = objectOf(identity.payload.user ?? objectOf(dataOf(identity)).user);
+    if (!succeeded(identity) || typeof user.id !== 'string') return undefined;
+    const userId = user.id;
+    const admin = user.username === config.adminUsername || !!await store.get('user_settings', `${userId}:my-agent-admin`);
+    return { userId, admin, identity: gatewayIdentityFor({ id: userId, username: user.username }, admin, options.env) };
+  };
+  const gatewayFor = (identity: GatewayIdentity) => identity ? new GatewayClient(config, identity) : gateway;
+
   const login = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     if (!sameOrigin(req)) { sendJson(res, 403, { success: false, error: 'CROSS_SITE_REQUEST' }); return; }
     if (!req.headers['content-type']?.toLowerCase().startsWith('application/json')) {
@@ -189,15 +200,22 @@ export async function createMyAgentBridge(options: BridgeOptions) {
       }
       if (path.startsWith('/api/myagent/')) {
         if (closed) { sendJson(res, 503, { success: false, error: 'BRIDGE_CLOSED' }); return true; }
-        return handleMyAgentRoutes(req, res, {
-          gateway,
-          requireAuth: async (r) => {
-            const idRes = await resolveIdentity(sessionHeaders(r));
-            const u = objectOf(idRes.payload.user ?? objectOf(dataOf(idRes)).user);
-            return succeeded(idRes) && typeof u.id === 'string';
-          },
-          requireCsrf: (r) => sameOrigin(r),
-        });
+        let caller: Caller | undefined;
+        try { caller = await resolveCaller(req); }
+        catch { sendJson(res, 502, { success: false, error: 'MY_AGENT_GATEWAY_UNAVAILABLE' }); return true; }
+        if (caller && caller.identity === null && isGatewayBridgePath(path)) {
+          sendJson(res, 403, { success: false, error: 'GATEWAY_IDENTITY_UNAVAILABLE' }); return true;
+        }
+        const scoped = gatewayFor(caller?.identity ?? undefined);
+        if (path.startsWith('/api/myagent/sessions/progress/')) {
+          if (!caller) { sendJson(res, 401, { success: false, error: 'AUTH_REQUIRED' }); return true; }
+          return handleSessionProgress(req, res, path, scoped);
+        }
+        return handleMyAgentRoutes(req, res, { gateway: scoped, requireAuth: async () => caller !== undefined, requireCsrf: (r) => sameOrigin(r) });
+      }
+      if (isExternalConversationPath(path)) {
+        if (closed) { sendJson(res, 503, { success: false, error: 'BRIDGE_CLOSED' }); return true; }
+        return handleExternalConversation(req, res, path, method, { resolveCaller, gatewayFor });
       }
       const isAuthUserGet = path === '/api/auth/user' && method === 'GET';
       const tracked = isAuthUserGet || path === '/api/assistants' || path === '/api/agents/management' || path === '/api/providers' ||
@@ -256,6 +274,10 @@ export async function createMyAgentBridge(options: BridgeOptions) {
             data = dataOf(canonical);
           }
           await mirror(userId, path, method, data);
+          if (path === '/api/conversations' && method === 'GET' && !new URL(req.url || '/', 'http://localhost').searchParams.has('cursor')) {
+            const identity = gatewayIdentityFor({ id: userId, username: user.username }, admin, options.env);
+            if (identity !== null) response.payload = await mergeGatewaySessions(gatewayFor(identity), userId, response.payload);
+          }
         }
         relayJson(res, response);
       } catch (error) {

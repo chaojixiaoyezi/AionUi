@@ -4,15 +4,20 @@ import { readPrivateText, requestJson } from './io.js';
 import { setTimeout as delay } from 'node:timers/promises';
 
 export type JsonObject = Record<string, unknown>;
+export type GatewayIdentity = { userId: string; channel: string } | undefined;
 
 /** Real HTTP Gateway transport. There is intentionally no mock or CLI retry fallback. */
 export class GatewayClient {
-  constructor(readonly config: MyAgentConfig) {}
+  constructor(readonly config: MyAgentConfig, readonly identity: GatewayIdentity = undefined) {}
   private async call(path: string, body?: JsonObject, signal?: AbortSignal): Promise<JsonObject> {
     const headers: Record<string, string> = {};
     // GatewayClientCredentials.headers() uses X-Gateway-Token, not Bearer auth.
     // Send exactly one transport credential header and never retry anonymously.
     if (this.config.gatewayTokenFile) headers['x-gateway-token'] = await readPrivateText(this.config.gatewayTokenFile);
+    if (this.identity) {
+      headers['x-user-id'] = this.identity.userId;
+      headers['x-channel'] = this.identity.channel;
+    }
     const result = await requestJson(this.config.gatewayUrl + path, { method: body ? 'POST' : 'GET', body, headers, signal });
     if (result.status < 200 || result.status >= 300 || result.payload.ok === false) throw new Error(`GATEWAY_HTTP_${result.status}`);
     return result.payload;
@@ -49,6 +54,27 @@ export class GatewayClient {
   }
   async history(conversationId: string): Promise<JsonObject> {
     return this.call('/client/history', { conversation_id: conversationId, limit: 100 });
+  }
+  /** List the caller's first or subsequent Gateway session page. */
+  async listSessions(conversationId: string, cursor?: string, signal?: AbortSignal): Promise<JsonObject> {
+    return this.call('/client/history', {
+      operation: 'list', conversation_id: conversationId, include_inflight: true,
+      ...(cursor ? { cursor } : {}),
+    }, signal);
+  }
+  /** Read a listed thread without changing the caller's Gateway identity. */
+  async sessionHistory(conversationId: string, threadId: string, limit: number, before?: number, signal?: AbortSignal): Promise<JsonObject> {
+    return this.call('/client/history', {
+      conversation_id: conversationId, target_thread_id: threadId, limit,
+      ...(before !== undefined ? { before_message_cursor: before } : {}),
+    }, signal);
+  }
+  /** Relay a validated progress cursor without ever retrying anonymously. */
+  async progress(requestId: string, since: number, signal?: AbortSignal): Promise<JsonObject> {
+    if (!/^[A-Za-z0-9_.:-]{1,240}$/.test(requestId) || !Number.isSafeInteger(since) || since < 0) {
+      throw new Error('INVALID_GATEWAY_PROGRESS');
+    }
+    return this.call(`/progress/${encodeURIComponent(requestId)}?since=${since}`, undefined, signal);
   }
   async selectModel(conversationId: string, profileId: string): Promise<void> {
     await this.call('/client/models', { operation: 'select', profile_id: profileId, conversation_id: conversationId });
