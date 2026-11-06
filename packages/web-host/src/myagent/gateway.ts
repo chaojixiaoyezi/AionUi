@@ -17,6 +17,33 @@ export class GatewayClient {
     if (result.status < 200 || result.status >= 300 || result.payload.ok === false) throw new Error(`GATEWAY_HTTP_${result.status}`);
     return result.payload;
   }
+  /** Read native Gateway status without a business request envelope. */
+  async status(signal?: AbortSignal): Promise<JsonObject> {
+    return this.call('/status', undefined, signal);
+  }
+  /** Submit one business operation with a fresh transport request identity. */
+  async business(action: string, params: JsonObject = {}, idempotencyKey?: string, signal?: AbortSignal): Promise<JsonObject> {
+    return this.call('/client/business', {
+      action, request_id: randomUUID(), params,
+      ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+    }, signal);
+  }
+  /** List the skills visible to the configured Gateway identity. */
+  async listSkills(params: JsonObject = {}, signal?: AbortSignal): Promise<JsonObject> {
+    return this.business('skills.list', params, undefined, signal);
+  }
+  /** Set a skill's enabled state through the business API. */
+  async setSkillEnabled(skillId: string, enabled: boolean, signal?: AbortSignal): Promise<JsonObject> {
+    return this.business('skills.set_enabled', { skill_id: skillId, enabled }, undefined, signal);
+  }
+  /** List pending approvals visible to the configured Gateway identity. */
+  async listApprovals(params: JsonObject = {}, signal?: AbortSignal): Promise<JsonObject> {
+    return this.business('approvals.list', params, undefined, signal);
+  }
+  /** Repeated identical decisions use the same business idempotency key. */
+  async decideApproval(approvalId: string, decision: 'approve' | 'deny', signal?: AbortSignal): Promise<JsonObject> {
+    return this.business('approvals.decide', { approval_id: approvalId, decision }, `decide-${approvalId}-${decision}`, signal);
+  }
   async models(conversationId: string): Promise<JsonObject> {
     return this.call('/client/models', { operation: 'list', conversation_id: conversationId });
   }
