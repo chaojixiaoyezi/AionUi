@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { openBridgeStore, type StoreEntry } from './store.js';
+import { openBridgeStore, type BridgeStore, type StoreEntry } from './store.js';
 import { loadMyAgentConfig } from './config.js';
 import { verifyPasswordRecord } from './auth.js';
 import { readPrivateText, type JsonResponse } from './io.js';
@@ -10,10 +10,25 @@ import { createCatalogBootstrap, MY_AGENT_ID, MY_AGENT_NAME, objectOf, type Adap
 
 export type BridgeOptions = { backendPort: number; dataDir: string; bootstrapSecret: string; env: NodeJS.ProcessEnv; runtime: AdapterRuntime };
 
+/** Read persisted bridge snapshots using the same user-scoped keys as the HTTP mirror. */
+export class MyAgentWebService {
+  constructor(private readonly store: Pick<BridgeStore, 'get' | 'list'>) {}
+
+  /** Return only this user's conversation messages; missing and foreign IDs are indistinguishable. */
+  async getConversationMessages(userId: string, id: string): Promise<unknown[]> {
+    const key = `${userId}:${id}`;
+    if (!userId || !id || objectOf(await this.store.get('conversations', key)).id !== id) {
+      throw new Error('NOT_FOUND');
+    }
+    return (await this.store.list('messages', `${key}:`)).map((entry) => entry.value);
+  }
+}
+
 /** Trusted WebUI middleware: Core owns identities/cookies; Gateway owns execution. */
 export async function createMyAgentBridge(options: BridgeOptions) {
   const config = loadMyAgentConfig(options.env);
   const store = await openBridgeStore(options.dataDir, options.env);
+  const service = new MyAgentWebService(store);
   const core = coreClient(options.backendPort);
   const gateway = new GatewayClient(config);
   const ensureCatalog = createCatalogBootstrap(core, store, options.runtime);
@@ -156,6 +171,7 @@ export async function createMyAgentBridge(options: BridgeOptions) {
 
   return {
     store,
+    getConversationMessages: service.getConversationMessages.bind(service),
     async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
       let path: string;
       try { path = decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname); }
